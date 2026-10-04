@@ -16,20 +16,31 @@ jobs:
         run: |
           Copy-Item "$PWD\ULLR-base-bcd" "$PWD\linux-bcd"
 
+          & bcdedit /store "$PWD\linux-bcd" /set '{default}' device boot
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
           & bcdedit /store "$PWD\linux-bcd" /set '{default}' path '\efi\boot\bootshim-test.efi'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           & bcdedit /store "$PWD\linux-bcd" /set '{default}' description 'Boot Linux'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+          & bcdedit /store "$PWD\linux-bcd" /set '{default}' nointegritychecks Yes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & bcdedit /store "$PWD\linux-bcd" /set '{default}' testsigning Yes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & bcdedit /store "$PWD\linux-bcd" /set '{default}' isolatedcontext Yes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
           & bcdedit /store "$PWD\linux-bcd" /deletevalue '{default}' loadoptions
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "No loadoptions value to delete, continuing."
+            Write-Host "No loadoptions value to remove."
           }
 
-          Write-Host "---- FINAL DEFAULT ENTRY ----"
+          Write-Host "===== FINAL BCD ENTRY ====="
           & bcdedit /store "$PWD\linux-bcd" /enum '{default}'
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Linux BCD
         uses: actions/upload-artifact@v4

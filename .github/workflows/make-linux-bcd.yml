@@ -1,0 +1,39 @@
+name: Make Surface RT Linux BCD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  make-bcd:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Linux BCD
+        shell: pwsh
+        run: |
+          Copy-Item "$PWD\ULLR-base-bcd" "$PWD\linux-bcd"
+
+          & bcdedit /store "$PWD\linux-bcd" /set '{default}' path '\efi\boot\bootshim-test.efi'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & bcdedit /store "$PWD\linux-bcd" /set '{default}' description 'Boot Linux'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & bcdedit /store "$PWD\linux-bcd" /deletevalue '{default}' loadoptions
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No loadoptions value to delete, continuing."
+          }
+
+          Write-Host "---- FINAL DEFAULT ENTRY ----"
+          & bcdedit /store "$PWD\linux-bcd" /enum '{default}'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Linux BCD
+        uses: actions/upload-artifact@v4
+        with:
+          name: surface-rt-linux-bcd
+          path: linux-bcd
+          if-no-files-found: error
